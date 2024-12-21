@@ -27,3 +27,37 @@
 4. 此时剪贴板中已包含格式化后的 Markdown 链接
 
 例如，如果你在 Google 主页双击，可能会得到如下格式的文本： 
+```markdownText
+[Google](https://www.google.com/)
+```
+
+## 文件结构
+
+- `manifest.json`: 插件配置文件
+- `content.js`: 处理页面交互和复制功能
+- `background.js`: 后台服务
+- `README.md`: 说明文档
+
+## 权限说明
+
+插件需要以下权限：
+- `activeTab`: 访问当前标签页
+- `tabs`: 获取标签页信息
+- `scripting`: 执行页面脚本
+- `clipboardWrite`: 写入剪贴板
+
+## 开发说明
+
+如果你想修改或改进这个插件：
+
+1. 修改提示样式：在 `content.js` 中的 `showMessage` 函数中调整 CSS 样式
+2. 修改复制格式：在 `content.js` 中修改 `markdownText` 的格式化方式
+3. 调整提示时间：修改 `setTimeout` 的时间参数（当前为 2000ms）
+
+## 贡献
+
+欢迎提交 Issue 或 Pull Request 来改进这个插件。
+
+## 许可证
+
+MIT License
