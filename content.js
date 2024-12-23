@@ -1,33 +1,91 @@
+// URL清洗函数
+function cleanUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    // 需要移除的参数列表
+    const paramsToRemove = [
+      'spm',
+      'spm_id_from',  // B站特有
+      'vd_source',    // B站特有
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content'
+    ];
+    
+    // 获取所有查询参数
+    const searchParams = new URLSearchParams(urlObj.search);
+    let hasPromoParam = false;
+    
+    // 找到推广参数在查询字符串中的位置
+    let promoParamIndex = -1;
+    for (const param of paramsToRemove) {
+      const fullParam = `${param}=`;
+      const index = url.indexOf(fullParam);
+      if (index !== -1 && (url[index - 1] === '?' || url[index - 1] === '&')) {
+        promoParamIndex = index;
+        hasPromoParam = true;
+        break;
+      }
+    }
+    
+    // 如果找到推广参数，截取到该参数之前的部分
+    if (hasPromoParam) {
+      const paramStart = url.lastIndexOf('?', promoParamIndex);
+      if (paramStart === promoParamIndex - 1) {
+        // 如果推广参数是第一个参数，直接返回不带参数的URL
+        return url.substring(0, paramStart);
+      } else {
+        // 如果推广参数不是第一个参数，保留之前的参数
+        return url.substring(0, url.lastIndexOf('&', promoParamIndex));
+      }
+    }
+    
+    // 如果不存在需要移除的参数，保持原URL不变
+    return url;
+  } catch (e) {
+    console.error('URL清洗失败:', e);
+    return url;
+  }
+}
+
 document.addEventListener('dblclick', () => {
   const title = document.title;
-  const url = window.location.href;
-  const markdownText = `[${title}](${url})`;
-
-  // 创建一个临时的textarea元素
-  const textarea = document.createElement('textarea');
-  textarea.value = markdownText;
-  document.body.appendChild(textarea);
-  textarea.select();
+  let url = window.location.href;
   
-  try {
-    // 执行复制
-    document.execCommand('copy');
-    console.log('复制成功:', markdownText);
+  // 获取设置并处理URL
+  chrome.storage.sync.get(['showDetailedMessage', 'cleanUrl'], (result) => {
+    if (result.cleanUrl) {
+      url = cleanUrl(url);
+    }
     
-    // 获取设置并显示提示消息
-    chrome.storage.sync.get(['showDetailedMessage'], (result) => {
+    const markdownText = `[${title}](${url})`;
+  
+    // 创建一个临时的textarea元素
+    const textarea = document.createElement('textarea');
+    textarea.value = markdownText;
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+      // 执行复制
+      document.execCommand('copy');
+      console.log('复制成功:', markdownText);
+      
+      // 获取设置并显示提示消息
       const message = result.showDetailedMessage 
         ? `复制成功！\n${markdownText}`
         : '复制成功！';
       showMessage(message);
-    });
-  } catch (err) {
-    console.error('复制失败:', err);
-    showMessage('复制失败！', true);
-  } finally {
-    // 清理临时元素
-    document.body.removeChild(textarea);
-  }
+    } catch (err) {
+      console.error('复制失败:', err);
+      showMessage('复制失败！', true);
+    } finally {
+      // 清理临时元素
+      document.body.removeChild(textarea);
+    }
+  });
 });
 
 // 显示消息的函数
