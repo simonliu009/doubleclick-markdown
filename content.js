@@ -14,8 +14,13 @@ document.addEventListener('dblclick', () => {
     document.execCommand('copy');
     console.log('复制成功:', markdownText);
     
-    // 显示提示消息
-    showMessage('复制成功！');
+    // 获取设置并显示提示消息
+    chrome.storage.sync.get(['showDetailedMessage'], (result) => {
+      const message = result.showDetailedMessage 
+        ? `复制成功！\n${markdownText}`
+        : '复制成功！';
+      showMessage(message);
+    });
   } catch (err) {
     console.error('复制失败:', err);
     showMessage('复制失败！', true);
@@ -29,7 +34,6 @@ document.addEventListener('dblclick', () => {
 function showMessage(text, isError = false) {
   // 创建消息元素
   const message = document.createElement('div');
-  message.textContent = text;
   message.style.cssText = `
     position: fixed;
     top: 50%;
@@ -44,7 +48,10 @@ function showMessage(text, isError = false) {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     z-index: 999999;
     transition: opacity 0.3s ease-in-out;
+    white-space: pre-line;
   `;
+  
+  message.textContent = text;
   
   // 添加到页面
   document.body.appendChild(message);
