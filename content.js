@@ -50,42 +50,67 @@ function cleanUrl(url) {
   }
 }
 
-document.addEventListener('dblclick', () => {
-  const title = document.title;
-  let url = window.location.href;
+// 添加双击检测变量
+let lastMiddleClickTime = 0;
+const DOUBLE_CLICK_THRESHOLD = 300; // 双击时间阈值（毫秒）
+
+document.addEventListener('mouseup', (event) => {
+  // 检查是否是鼠标中键（button值为1表示中键）
+  if (event.button !== 1) return;
   
-  // 获取设置并处理URL
-  chrome.storage.sync.get(['showDetailedMessage', 'cleanUrl'], (result) => {
-    if (result.cleanUrl) {
-      url = cleanUrl(url);
-    }
-    
-    const markdownText = `[${title}](${url})`;
+  // 防止默认的中键滚动行为
+  event.preventDefault();
   
-    // 创建一个临时的textarea元素
-    const textarea = document.createElement('textarea');
-    textarea.value = markdownText;
-    document.body.appendChild(textarea);
-    textarea.select();
+  try {
+    const currentTime = Date.now(); // 使用 Date.now() 替代 new Date().getTime()
+    const timeDiff = currentTime - lastMiddleClickTime;
     
-    try {
-      // 执行复制
-      document.execCommand('copy');
-      console.log('复制成功:', markdownText);
+    if (timeDiff < DOUBLE_CLICK_THRESHOLD) {
+      // 双击中键，执行复制操作
+      const title = document.title;
+      let url = window.location.href;
       
-      // 获取设置并显示提示消息
-      const message = result.showDetailedMessage 
-        ? `复制成功！\n${markdownText}`
-        : '复制成功！';
-      showMessage(message);
-    } catch (err) {
-      console.error('复制失败:', err);
-      showMessage('复制失败！', true);
-    } finally {
-      // 清理临时元素
-      document.body.removeChild(textarea);
+      // 获取设置并处理URL
+      chrome.storage.sync.get(['showDetailedMessage', 'cleanUrl'], (result) => {
+        if (result.cleanUrl) {
+          url = cleanUrl(url);
+        }
+        
+        const markdownText = `[${title}](${url})`;
+      
+        // 创建一个临时的textarea元素
+        const textarea = document.createElement('textarea');
+        textarea.value = markdownText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+          // 执行复制
+          document.execCommand('copy');
+          console.log('复制成功:', markdownText);
+          
+          const message = result.showDetailedMessage 
+            ? `复制成功！\n${markdownText}`
+            : '复制成功！';
+          showMessage(message);
+        } catch (err) {
+          console.error('复制失败:', err);
+          showMessage('复制失败！', true);
+        } finally {
+          // 清理临时元素
+          document.body.removeChild(textarea);
+        }
+      });
+      
+      // 重置点击时间
+      lastMiddleClickTime = 0;
+    } else {
+      // 记录第一次点击时间
+      lastMiddleClickTime = currentTime;
     }
-  });
+  } catch (error) {
+    console.error('双击检测失败:', error);
+  }
 });
 
 // 显示消息的函数

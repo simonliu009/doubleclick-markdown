@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "双击复制标签信息",
+  "description": "双击鼠标中键即可复制页面标题和链接为Markdown格式。两个实用选项：1.显示详细复制内容 2.自动清理URL推广参数（如spm、utm等）。",
   "version": "1.0",
   "permissions": [
     "activeTab",
