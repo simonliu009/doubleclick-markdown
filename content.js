@@ -1,3 +1,30 @@
+// 在文件开头添加默认设置
+let userSettings = {
+  showDetailedMessage: true,  // 默认显示详细信息
+  cleanUrl: true             // 默认清理URL
+};
+
+// 在文件开头添加初始化函数
+function initializeSettings() {
+  chrome.storage.sync.get(['showDetailedMessage', 'cleanUrl'], (result) => {
+    userSettings.showDetailedMessage = result.showDetailedMessage !== undefined ? result.showDetailedMessage : true;
+    userSettings.cleanUrl = result.cleanUrl !== undefined ? result.cleanUrl : true;
+  });
+}
+
+// 初始化设置
+initializeSettings();
+
+// 监听设置变化
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.showDetailedMessage) {
+    userSettings.showDetailedMessage = changes.showDetailedMessage.newValue;
+  }
+  if (changes.cleanUrl) {
+    userSettings.cleanUrl = changes.cleanUrl.newValue;
+  }
+});
+
 // URL清洗函数
 function cleanUrl(url) {
   try {
@@ -50,68 +77,100 @@ function cleanUrl(url) {
   }
 }
 
-// 添加双击检测变量
+// 在文件开头的变量声明部分
 let lastMiddleClickTime = 0;
-const DOUBLE_CLICK_THRESHOLD = 300; // 双击时间阈值（毫秒）
+let middleClickCount = 0;
+const CLICK_THRESHOLD = 300; // 点击时间阈值（毫秒）
+let clickTimer = null;  // 添加定时器变量
 
 document.addEventListener('mouseup', (event) => {
-  // 检查是否是鼠标中键（button值为1表示中键）
+  // 只监听中键点击
   if (event.button !== 1) return;
   
   // 防止默认的中键滚动行为
   event.preventDefault();
   
   try {
-    const currentTime = Date.now(); // 使用 Date.now() 替代 new Date().getTime()
+    const currentTime = Date.now();
     const timeDiff = currentTime - lastMiddleClickTime;
     
-    if (timeDiff < DOUBLE_CLICK_THRESHOLD) {
-      // 双击中键，执行复制操作
-      const title = document.title;
-      let url = window.location.href;
+    if (timeDiff < CLICK_THRESHOLD) {
+      // 增加点击计数
+      middleClickCount++;
       
-      // 获取设置并处理URL
-      chrome.storage.sync.get(['showDetailedMessage', 'cleanUrl'], (result) => {
-        if (result.cleanUrl) {
-          url = cleanUrl(url);
-        }
-        
-        const markdownText = `[${title}](${url})`;
+      // 清除之前的定时器
+      if (clickTimer) {
+        clearTimeout(clickTimer);
+      }
       
-        // 创建一个临时的textarea元素
-        const textarea = document.createElement('textarea');
-        textarea.value = markdownText;
-        document.body.appendChild(textarea);
-        textarea.select();
-        
-        try {
-          // 执行复制
-          document.execCommand('copy');
-          console.log('复制成功:', markdownText);
+      // 设置新的定时器
+      clickTimer = setTimeout(() => {
+        if (middleClickCount === 2) {
+          // 双击中键，复制带标题的链接
+          const title = document.title;
+          let url = window.location.href;
           
-          const message = result.showDetailedMessage 
-            ? `复制成功！\n${markdownText}`
-            : '复制成功！';
-          showMessage(message);
-        } catch (err) {
-          console.error('复制失败:', err);
-          showMessage('复制失败！', true);
-        } finally {
-          // 清理临时元素
-          document.body.removeChild(textarea);
+          if (userSettings.cleanUrl) {
+            url = cleanUrl(url);
+          }
+          
+          const markdownText = `[${title}](${url})`;
+          copyToClipboard(markdownText, '复制成功！');
+        } else if (middleClickCount === 3) {
+          // 三击中键，仅复制URL
+          let url = window.location.href;
+          
+          if (userSettings.cleanUrl) {
+            url = cleanUrl(url);
+          }
+          
+          copyToClipboard(url, 'URL复制成功！');
         }
-      });
-      
-      // 重置点击时间
-      lastMiddleClickTime = 0;
+        
+        // 重置点击计数和定时器
+        middleClickCount = 0;
+        clickTimer = null;
+      }, CLICK_THRESHOLD);
     } else {
-      // 记录第一次点击时间
-      lastMiddleClickTime = currentTime;
+      // 超时，重置计数
+      middleClickCount = 1;
     }
+    
+    // 更新最后点击时间
+    lastMiddleClickTime = currentTime;
   } catch (error) {
-    console.error('双击检测失败:', error);
+    console.error('点击检测失败:', error);
+    // 发生错误时重置状态
+    middleClickCount = 0;
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+    }
   }
 });
+
+// 添加一个通用的复制函数
+function copyToClipboard(text, successMessage) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  
+  try {
+    document.execCommand('copy');
+    console.log('复制成功:', text);
+    
+    const message = userSettings.showDetailedMessage 
+      ? `${successMessage}\n${text}`
+      : successMessage;
+    showMessage(message);
+  } catch (err) {
+    console.error('复制失败:', err);
+    showMessage('复制失败！', true);
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
 
 // 显示消息的函数
 function showMessage(text, isError = false) {
