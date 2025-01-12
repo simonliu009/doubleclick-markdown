@@ -29,6 +29,12 @@ chrome.storage.onChanged.addListener((changes) => {
 function cleanUrl(url) {
   try {
     const urlObj = new URL(url);
+    
+    // 如果没有查询参数，直接返回原始URL
+    if (!urlObj.search) {
+      return url;
+    }
+
     // 需要移除的参数列表
     const paramsToRemove = [
       'spm',
@@ -38,39 +44,34 @@ function cleanUrl(url) {
       'utm_medium',
       'utm_campaign',
       'utm_term',
-      'utm_content'
+      'utm_content',
+      'ops_request_misc',  // CSDN特有
+      'request_id',        // CSDN特有
+      'biz_id'            // CSDN特有
     ];
     
     // 获取所有查询参数
     const searchParams = new URLSearchParams(urlObj.search);
-    let hasPromoParam = false;
+    let hasChanged = false;
     
-    // 找到推广参数在查询字符串中的位置
-    let promoParamIndex = -1;
+    // 遍历并删除推广参数
     for (const param of paramsToRemove) {
-      const fullParam = `${param}=`;
-      const index = url.indexOf(fullParam);
-      if (index !== -1 && (url[index - 1] === '?' || url[index - 1] === '&')) {
-        promoParamIndex = index;
-        hasPromoParam = true;
-        break;
+      if (searchParams.has(param)) {
+        searchParams.delete(param);
+        hasChanged = true;
       }
     }
     
-    // 如果找到推广参数，截取到该参数之前的部分
-    if (hasPromoParam) {
-      const paramStart = url.lastIndexOf('?', promoParamIndex);
-      if (paramStart === promoParamIndex - 1) {
-        // 如果推广参数是第一个参数，直接返回不带参数的URL
-        return url.substring(0, paramStart);
-      } else {
-        // 如果推广参数不是第一个参数，保留之前的参数
-        return url.substring(0, url.lastIndexOf('&', promoParamIndex));
-      }
+    // 如果没有改变，返回原始URL
+    if (!hasChanged) {
+      return url;
     }
     
-    // 如果不存在需要移除的参数，保持原URL不变
-    return url;
+    // 重建URL
+    const remainingParams = searchParams.toString();
+    const baseUrl = url.split('?')[0];
+    return remainingParams ? `${baseUrl}?${remainingParams}` : baseUrl;
+    
   } catch (e) {
     console.error('URL清洗失败:', e);
     return url;
