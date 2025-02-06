@@ -38,6 +38,7 @@ function cleanUrl(url) {
     // 需要移除的参数列表
     const paramsToRemove = [
       'spm',
+      'spmid',        // B站特有
       'spm_id_from',  // B站特有
       'vd_source',    // B站特有
       'utm_source',
@@ -47,7 +48,21 @@ function cleanUrl(url) {
       'utm_content',
       'ops_request_misc',  // CSDN特有
       'request_id',        // CSDN特有
-      'biz_id'            // CSDN特有
+      'biz_id',           // CSDN特有
+      'buvid',            // B站特有
+      'from_spmid',       // B站特有
+      'is_story_h5',      // B站特有
+      'mid',              // B站特有
+      'plat_id',          // B站特有
+      'share_from',       // B站特有
+      'share_medium',     // B站特有
+      'share_plat',       // B站特有
+      'share_session_id', // B站特有
+      'share_source',     // B站特有
+      'share_tag',        // B站特有
+      'timestamp',        // B站特有
+      'unique_k',         // B站特有
+      'up_id'            // B站特有
     ];
     
     // 获取所有查询参数
@@ -206,4 +221,4 @@ function showMessage(text, isError = false) {
       document.body.removeChild(message);
     }, 300);
   }, 2000);
-} 
+}
