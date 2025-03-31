@@ -129,8 +129,28 @@ document.addEventListener('mouseup', (event) => {
           if (userSettings.cleanUrl) {
             url = cleanUrl(url);
           }
-          
-          const markdownText = `[${title}](${url})`;
+
+          // 获取作者信息
+          let author = '';
+          const scripts = document.querySelectorAll('script');
+          for (const script of scripts) {
+            if (script.textContent.includes('nickName')) {
+              const nickNameMatch = script.textContent.match(/nickName\s*=\s*"(.*?)"/);
+              if (nickNameMatch && nickNameMatch[1]) {
+                author = nickNameMatch[1];
+                break;
+              }
+            }
+          }
+          let metaAuthor = document.querySelector('meta[name="author"]');
+          if (!metaAuthor) {
+            metaAuthor = document.querySelector('meta[itemprop="author"]');
+          }
+          if (metaAuthor && !author) {
+            author = metaAuthor.content;
+          }
+
+          const markdownText = `[${title} - ${author}](${url})`;
           copyToClipboard(markdownText, '复制成功！');
         } else if (middleClickCount === 3) {
           // 三击中键，仅复制URL
